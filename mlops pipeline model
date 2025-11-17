@@ -1,0 +1,381 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "authorship_tag": "ABX9TyPkKR2p1TlIdPa1xg6LuCe4",
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/Gauravnandy/Machine-learning/blob/main/mlops%20pipeline%20model\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": 3,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "MC9DHiEDGoH2",
+        "outputId": "ca320158-49ac-4d5b-a302-f99713c8f812"
+      },
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Mounted at /content/drive\n"
+          ]
+        }
+      ],
+      "source": [
+        "# Cell 1 — Install deps and mount Google Drive (run)\n",
+        "!pip install -q scikit-learn joblib pandas\n",
+        "\n",
+        "from google.colab import drive\n",
+        "drive.mount('/content/drive')   # follow prompts to authenticate\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Cell 2 — Create folders\n",
+        "import os\n",
+        "os.makedirs('/content/ml_pipeline/src', exist_ok=True)\n",
+        "os.makedirs('/content/ml_pipeline/models', exist_ok=True)\n",
+        "os.makedirs('/content/ml_pipeline/data', exist_ok=True)\n",
+        "print(\"Folders created under /content/ml_pipeline\")"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "gaz4lQz_Hcce",
+        "outputId": "074f3700-f05f-45d5-8c71-5b0107dc3ab3"
+      },
+      "execution_count": 4,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "Folders created under /content/ml_pipeline\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Cell 3 — write preprocess.py\n",
+        "preprocess_code = \"\"\"\n",
+        "# src/preprocess.py\n",
+        "from sklearn.datasets import load_iris\n",
+        "from sklearn.model_selection import train_test_split\n",
+        "from sklearn.preprocessing import StandardScaler\n",
+        "import pandas as pd\n",
+        "\n",
+        "def load_and_preprocess_data(test_size=0.2, random_state=42):\n",
+        "    iris = load_iris()\n",
+        "    X = iris.data\n",
+        "    y = iris.target\n",
+        "    scaler = StandardScaler()\n",
+        "    X_scaled = scaler.fit_transform(X)\n",
+        "    X_train, X_test, y_train, y_test = train_test_split(\n",
+        "        X_scaled, y, test_size=test_size, random_state=random_state, stratify=y\n",
+        "    )\n",
+        "    return X_train, X_test, y_train, y_test, scaler\n",
+        "\n",
+        "if __name__ == '__main__':\n",
+        "    X_train, X_test, y_train, y_test, scaler = load_and_preprocess_data()\n",
+        "    print('Shapes:', X_train.shape, X_test.shape)\n",
+        "\"\"\"\n",
+        "open('/content/ml_pipeline/src/preprocess.py','w').write(preprocess_code)\n",
+        "print(\"src/preprocess.py written\")\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "jCJkXYqkHjGt",
+        "outputId": "b1bfd9c0-99b0-4013-f43e-4760cefeace4"
+      },
+      "execution_count": 5,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "src/preprocess.py written\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Cell 4 — write train.py\n",
+        "train_code = \"\"\"\n",
+        "# src/train.py\n",
+        "import joblib\n",
+        "from sklearn.linear_model import LogisticRegression\n",
+        "import os\n",
+        "\n",
+        "def train_model(X_train, y_train, save_path='models/model.pkl'):\n",
+        "    model = LogisticRegression(max_iter=200, random_state=42)\n",
+        "    model.fit(X_train, y_train)\n",
+        "    os.makedirs(os.path.dirname(save_path), exist_ok=True)\n",
+        "    joblib.dump(model, save_path)\n",
+        "    return model\n",
+        "\n",
+        "if __name__ == '__main__':\n",
+        "    print('Run train_model from your pipeline runner')\n",
+        "\"\"\"\n",
+        "open('/content/ml_pipeline/src/train.py','w').write(train_code)\n",
+        "print(\"src/train.py written\")\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "puiCB7vkHoi_",
+        "outputId": "e35dfc8f-69d8-41bd-e95b-d9304d199c30"
+      },
+      "execution_count": 6,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "src/train.py written\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Cell 5 — write evaluate.py\n",
+        "eval_code = \"\"\"\n",
+        "# src/evaluate.py\n",
+        "from sklearn.metrics import accuracy_score, classification_report\n",
+        "\n",
+        "def evaluate_model(model, X_test, y_test):\n",
+        "    preds = model.predict(X_test)\n",
+        "    acc = accuracy_score(y_test, preds)\n",
+        "    report = classification_report(y_test, preds)\n",
+        "    return acc, report\n",
+        "\n",
+        "if __name__ == '__main__':\n",
+        "    print('Run evaluate_model from your pipeline runner')\n",
+        "\"\"\"\n",
+        "open('/content/ml_pipeline/src/evaluate.py','w').write(eval_code)\n",
+        "print(\"src/evaluate.py written\")\n",
+        "\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "NTRe0unJHskh",
+        "outputId": "5a328ba5-fd09-4a7d-a3fb-31fadc5ea273"
+      },
+      "execution_count": 7,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "src/evaluate.py written\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# cell 6 main.py\n",
+        "main_code = \"\"\"\n",
+        "# main.py\n",
+        "from src.preprocess import load_and_preprocess_data\n",
+        "from src.train import train_model\n",
+        "from src.evaluate import evaluate_model\n",
+        "import joblib, os\n",
+        "\n",
+        "def pipeline(save_to_drive=False):\n",
+        "    print(\"\\\\n🔄 Loading & preprocessing data...\")\n",
+        "    X_train, X_test, y_train, y_test, scaler = load_and_preprocess_data()\n",
+        "\n",
+        "    print(\"🏋️ Training model...\")\n",
+        "    model = train_model(X_train, y_train, save_path='models/model.pkl')\n",
+        "\n",
+        "    print(\"📊 Evaluating...\")\n",
+        "    acc, report = evaluate_model(model, X_test, y_test)\n",
+        "    print(f\"\\\\n✅ Accuracy: {acc:.4f}\")\n",
+        "    print(\"\\\\nClassification Report:\")\n",
+        "    print(report)\n",
+        "\n",
+        "    # Save scaler\n",
+        "    os.makedirs('models', exist_ok=True)\n",
+        "    joblib.dump(scaler, 'models/scaler.pkl')\n",
+        "\n",
+        "    if save_to_drive:\n",
+        "        drive_path = '/content/drive/MyDrive/ml_pipeline_models'\n",
+        "        os.makedirs(drive_path, exist_ok=True)\n",
+        "        joblib.dump(model, f'{drive_path}/model.pkl')\n",
+        "        joblib.dump(scaler, f'{drive_path}/scaler.pkl')\n",
+        "        print(f\"💾 Model & scaler saved to Google Drive at {drive_path}\")\n",
+        "    else:\n",
+        "        print(\"\\\\n💾 Model saved locally at ./models/model.pkl\")\n",
+        "\n",
+        "if __name__ == '__main__':\n",
+        "    pipeline(save_to_drive=False)\n",
+        "\"\"\"\n",
+        "open('/content/ml_pipeline/main.py','w').write(main_code)\n",
+        "print(\"✅ main.py rewritten successfully\")\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "UxT10cRUHu_e",
+        "outputId": "de412eaf-8326-41ea-c64e-31c0a39d916f"
+      },
+      "execution_count": 18,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "✅ main.py rewritten successfully\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "# Cell 7 — Run pipeline and save locally\n",
+        "!python /content/ml_pipeline/main.py\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "iVNhpeweH0CG",
+        "outputId": "8eaf967d-39c9-480c-9be6-c14175d65db8"
+      },
+      "execution_count": 9,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "\n",
+            "🔄 Loading & preprocessing data...\n",
+            "🏋️ Training model...\n",
+            "📊 Evaluating...\n",
+            "\n",
+            "✅ Accuracy: 0.9333\n",
+            "\n",
+            "Classification Report:\n",
+            "              precision    recall  f1-score   support\n",
+            "\n",
+            "           0       1.00      1.00      1.00        10\n",
+            "           1       0.90      0.90      0.90        10\n",
+            "           2       0.90      0.90      0.90        10\n",
+            "\n",
+            "    accuracy                           0.93        30\n",
+            "   macro avg       0.93      0.93      0.93        30\n",
+            "weighted avg       0.93      0.93      0.93        30\n",
+            "\n",
+            "\n",
+            "💾 Model saved to ./models/model.pkl\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import sys\n",
+        "sys.path.append('/content/ml_pipeline')\n"
+      ],
+      "metadata": {
+        "id": "L9IUYlhFJsfB"
+      },
+      "execution_count": 15,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "!python /content/ml_pipeline/main.py\n"
+      ],
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "lpnmfx5EKYTq",
+        "outputId": "55c210a0-3f5f-41b9-d9c9-e08e0123e702"
+      },
+      "execution_count": 19,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stdout",
+          "text": [
+            "\n",
+            "🔄 Loading & preprocessing data...\n",
+            "🏋️ Training model...\n",
+            "📊 Evaluating...\n",
+            "\n",
+            "✅ Accuracy: 0.9333\n",
+            "\n",
+            "Classification Report:\n",
+            "              precision    recall  f1-score   support\n",
+            "\n",
+            "           0       1.00      1.00      1.00        10\n",
+            "           1       0.90      0.90      0.90        10\n",
+            "           2       0.90      0.90      0.90        10\n",
+            "\n",
+            "    accuracy                           0.93        30\n",
+            "   macro avg       0.93      0.93      0.93        30\n",
+            "weighted avg       0.93      0.93      0.93        30\n",
+            "\n",
+            "\n",
+            "💾 Model saved locally at ./models/model.pkl\n"
+          ]
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "!ls /content/ml_pipeline/models\n"
+      ],
+      "metadata": {
+        "id": "h_XQcIU2MheY"
+      },
+      "execution_count": 23,
+      "outputs": []
+    }
+  ]
+}
